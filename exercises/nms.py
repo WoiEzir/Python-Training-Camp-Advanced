@@ -24,6 +24,17 @@ def calculate_iou(box1, box2):
     # 请在此处编写代码
     # (与 iou.py 中的练习相同，可以复用代码或导入)
     # 提示：计算交集面积和并集面积，然后相除。
+    x_left = max(box1[0], box2[0])
+    y_top = max(box1[1], box2[1])
+    x_right = min(box1[2], box2[2])
+    y_bottom = min(box1[3], box2[3])
+    intersection_area = max(0, x_right - x_left) * max(0, y_bottom - y_top)
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union_area = box1_area + box2_area - intersection_area
+    if union_area == 0:
+        return 0
+    return intersection_area / union_area
     pass
 
 def nms(boxes, scores, iou_threshold):
@@ -52,4 +63,33 @@ def nms(boxes, scores, iou_threshold):
     #    c. 找到 IoU 小于等于 iou_threshold 的索引 inds。
     #    d. 更新 order，只保留那些 IoU <= threshold 的框的索引 (order = order[inds + 1])。
     # 7. 返回 keep 列表。
+    if len(boxes) == 0:
+        return []
+    boxes_np, scores_np = np.array(boxes), np.array(scores)
+    x_min = boxes_np[:, 0]
+    y_min = boxes_np[:, 1]
+    x_max = boxes_np[:, 2]
+    y_max = boxes_np[:, 3]
+    areas = (x_max - x_min) * (y_max - y_min)
+    order = scores_np.argsort()[::-1]
+    keep = []
+    i = order[0]
+    keep.append(i)
+    while order.size > 0:
+        if order.size == 1:
+            break
+        xx1 = np.maximum(x_min[i], x_min[order[1:]])
+        yy1 = np.maximum(y_min[i], y_min[order[1:]])
+        # 计算交集的右下角坐标
+        xx2 = np.minimum(x_max[i], x_max[order[1:]])
+        yy2 = np.minimum(y_max[i], y_max[order[1:]])
+        intersection = abs(xx2 - xx1) * abs(yy2 - yy1)
+        union = areas[i] + areas[order[1:]] - intersection
+
+        iou = np.where(union > 1e-9, intersection / union, 0.0)
+        inds = np.where(iou <= iou_threshold)[0]
+        order = order[inds + 1]
+
+
+    return keep
     pass 
